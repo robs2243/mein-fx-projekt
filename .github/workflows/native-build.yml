@@ -5,7 +5,6 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-
 jobs:
   build:
     name: Build on ${{ matrix.os }}
@@ -23,11 +22,9 @@ jobs:
           - os: macos-latest
             artifact-name: hello-macos
             binary-path: target/hello-javafx-native
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
       - name: Install Linux Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -38,11 +35,9 @@ jobs:
             libcairo2-dev libpango1.0-dev libatk1.0-dev \
             libgdk-pixbuf-2.0-dev libgl-dev zlib1g-dev \
             libfreetype-dev libasound2-dev
-
       - name: Setup MSVC (Windows)
         if: matrix.os == 'windows-latest'
         uses: ilammy/msvc-dev-cmd@v1
-
       - name: Setup GraalVM (Liberica NIK)
         uses: graalvm/setup-graalvm@v1
         with:
@@ -51,24 +46,26 @@ jobs:
           java-package: 'jdk+fx'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: 'maven'
-
       - name: Build Native Image
-        run: mvn -Pnative package -DskipTests
-
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            mvn -Pnative,native-windows package -DskipTests
+          else
+            mvn -Pnative package -DskipTests
+          fi
+        shell: bash
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
           path: ${{ matrix.binary-path }}
           retention-days: 5
-          
       - name: Show Error Report (Windows)
         if: failure() && matrix.os == 'windows-latest'
         run: |
           $report = Get-ChildItem -Path target -Filter "svm_err_*.md" | Select-Object -First 1
           if ($report) { Get-Content $report.FullName }
         shell: pwsh
-        
       - name: Upload Error Report (Windows)
         if: failure() && matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
