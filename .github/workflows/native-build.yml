@@ -1,18 +1,17 @@
 name: Multi-Platform Native Build
-
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch: # Erlaubt manuelles Starten per Klick auf GitHub
+  workflow_dispatch:
 
 jobs:
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false # Wenn ein System scheitert, sollen die anderen trotzdem weiterbauen
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -29,31 +28,36 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Spezielle Grafik-Abhängigkeiten für Linux (wichtig für JavaFX!)
       - name: Install Linux Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev libavcodec-dev libavformat-dev libavutil-dev libgl-dev libgtk-3-dev libpango1.0-dev libxtst-dev libxxf86vm-dev
+          sudo apt-get install -y \
+            libx11-dev libxtst-dev libfontconfig1-dev \
+            libharfbuzz-dev libgtk-3-dev libglib2.0-dev \
+            libcairo2-dev libpango1.0-dev libatk1.0-dev \
+            libgdk-pixbuf-2.0-dev libgl-dev zlib1g-dev \
+            libfreetype-dev libasound2-dev
 
-      # Setup Liberica NIK (GraalVM + JavaFX)
+      - name: Setup MSVC (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Setup GraalVM (Liberica NIK)
         uses: graalvm/setup-graalvm@v1
         with:
           java-version: '21'
           distribution: 'liberica'
-          java-package: 'jdk+fx' # Das lädt automatisch die "Full"-Version mit JavaFX
+          java-package: 'jdk+fx'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: 'maven'
 
-      # Der eigentliche Build-Befehl
-      - name: Build Native Image with Maven
-        run: mvn -Pnative package
+      - name: Build Native Image
+        run: mvn -Pnative package -DskipTests
 
-      # Die fertige Datei hochladen
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
           path: ${{ matrix.binary-path }}
-          retention-days: 5 # Wie lange die Datei gespeichert werden soll
+          retention-days: 5
