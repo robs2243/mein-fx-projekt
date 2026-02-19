@@ -21,7 +21,7 @@ jobs:
             binary-path: target/hello-javafx-native.exe
           - os: macos-latest
             artifact-name: hello-macos
-            binary-path: target/hello-javafx-native
+            binary-path: HelloFX.app
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -54,6 +54,33 @@ jobs:
             mvn -Pnative package -DskipTests
           fi
         shell: bash
+      - name: Create macOS App Bundle
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir -p "HelloFX.app/Contents/MacOS"
+          mkdir -p "HelloFX.app/Contents/Resources"
+          cp target/hello-javafx-native "HelloFX.app/Contents/MacOS/HelloFX"
+          chmod +x "HelloFX.app/Contents/MacOS/HelloFX"
+          cat > "HelloFX.app/Contents/Info.plist" << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>HelloFX</string>
+              <key>CFBundleIdentifier</key>
+              <string>dein.paket.hellofx</string>
+              <key>CFBundleName</key>
+              <string>HelloFX</string>
+              <key>CFBundleVersion</key>
+              <string>1.0</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
