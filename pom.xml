@@ -60,6 +60,7 @@
                             <buildArgs>
                                 <buildArg>-H:NativeLinkerOption=/DEFAULTLIB:shlwapi.lib</buildArg>
                                 <buildArg>-H:NativeLinkerOption=/SUBSYSTEM:WINDOWS</buildArg>
+                                <buildArg>-H:NativeLinkerOption=/ENTRY:mainCRTStartup</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>
